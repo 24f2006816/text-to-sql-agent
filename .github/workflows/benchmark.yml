@@ -1,0 +1,46 @@
+name: Benchmark
+
+# Runs the full 50-question benchmark with open models on a CPU runner and publishes the
+# execution-accuracy table. Re-run it from the Actions tab to reproduce the README numbers.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["sqlagent/**", "benchmark/**", ".github/workflows/benchmark.yml"]
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ["Qwen/Qwen2.5-Coder-0.5B-Instruct", "Qwen/Qwen2.5-Coder-1.5B-Instruct"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e ".[hf]"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ matrix.model }}
+      - name: Run benchmark
+        run: |
+          python -m sqlagent.bench --model "hf:${{ matrix.model }}" | tee table.md
+          cat table.md >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+          import glob, json
+          r = json.load(open(glob.glob("results/*.json")[0]))
+          short = {"model": r["model"], "minutes": r["minutes"],
+                   "runs": [{"strategy": x["strategy"], **x["summary"],
+                            "failed": [q["id"] for q in x["records"] if not q["lenient"]]} for x in r["runs"]]}
+          print("::notice title=bench-json::" + json.dumps(short, separators=(",", ":")))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ strategy.job-index }}
+          path: results/
