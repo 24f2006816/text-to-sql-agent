@@ -5,7 +5,28 @@
 
 **Ask a database questions in plain English.** An open LLM (Qwen2.5-Coder) writes SQLite, a guard lets through only read-only queries, and when a query fails the agent shows the model the database's error and lets it repair the query. A 50-question benchmark measures how often the answer is actually right.
 
-<!-- RESULTS -->
+**[Try the live demo](https://huggingface.co/spaces/24f2006816/text-to-sql-agent)** (Qwen2.5-Coder-1.5B on a free ZeroGPU Space).
+
+## Results
+
+50 questions, execution accuracy, measured by the [Benchmark workflow](https://github.com/24f2006816/text-to-sql-agent/actions/workflows/benchmark.yml) on a CPU runner with greedy decoding:
+
+| Model | Strategy | Execution accuracy | Easy | Medium | Hard |
+| --- | --- | --- | --- | --- | --- |
+| Qwen2.5-Coder-0.5B | Schema only | 46% | 73% | 55% | 7% |
+| Qwen2.5-Coder-0.5B | Schema + example rows | 62% | 100% | 65% | 20% |
+| Qwen2.5-Coder-0.5B | + self-correction | 62% | 100% | 65% | 20% |
+| Qwen2.5-Coder-1.5B | Schema only | 64% | 87% | 60% | 47% |
+| Qwen2.5-Coder-1.5B | Schema + example rows | 72% | 93% | 70% | 53% |
+| **Qwen2.5-Coder-1.5B** | **+ self-correction** | **74%** | 93% | 75% | 53% |
+
+What the numbers say:
+
+- **Example rows matter most.** Showing the model three rows per table adds 8 points (1.5B) and 16 points (0.5B). It learns real values, such as how dates and country names are stored.
+- **Model size matters most on hard questions:** 53% vs 20% on multi-join and subquery questions.
+- **Self-correction helps little at this size.** It added 2 points for the 1.5B model and nothing for the 0.5B model: small models tend to repeat the same mistake when shown the error. The loop is built to pay off with stronger models (try `--model openai:<model>`).
+- **The remaining failures are mostly hard joins and "top N" rankings,** where the model picks a plausible but wrong grouping. The query runs, but the answer is wrong, which is why execution accuracy is the metric and not "did it run".
+
 
 ## How it works
 
