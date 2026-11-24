@@ -25,7 +25,7 @@ What the numbers say:
 - **Example rows matter most.** Showing the model three rows per table adds 8 points (1.5B) and 16 points (0.5B). It learns real values, such as how dates and country names are stored.
 - **Model size matters most on hard questions:** 53% vs 20% on multi-join and subquery questions.
 - **Self-correction helps little at this size.** It added 2 points for the 1.5B model and nothing for the 0.5B model: small models tend to repeat the same mistake when shown the error. The loop is built to pay off with stronger models (try `--model openai:<model>`).
-- **The remaining failures are mostly hard joins and "top N" rankings,** where the model picks a plausible but wrong grouping. The query runs, but the answer is wrong, which is why execution accuracy is the metric and not "did it run".
+- **Of the 13 questions the best setup misses, 7 are hard** (multi-table joins, subqueries) and 5 are medium. Per-question predictions and errors are in the workflow's `results` artifact.
 
 
 ## How it works
